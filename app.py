@@ -112,13 +112,8 @@ for i in range(81):
         css += tile(i, "#FFFFFF", "#1D4ED8", 700)
     if S.selected == i:
         css += f".st-key-c{i} button{{border:3px solid #000000 !important;}}\n"
-    margins = ""
-    if c in (2, 5):
-        margins += "margin-right:8px;"
-    if r in (2, 5):
-        margins += "margin-bottom:8px;"
-    if margins:
-        css += f".st-key-c{i} button{{{margins}}}\n"
+for r in (2, 5):
+    css += f".st-key-row{r}{{margin-bottom:10px;}}\n"
 st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
 
 # --- sidebar ---------------------------------------------------------------
@@ -148,18 +143,22 @@ elif S.message:
     st.info(S.message)
 
 with st.container(key="grid"):
+    # Narrow empty spacer columns separate the 3x3 boxes; all 81 cell columns
+    # share the same weight so every cell has the same size.
+    weights = [1, 1, 1, 0.25, 1, 1, 1, 0.25, 1, 1, 1]
     for r in range(9):
-        cols = st.columns(9)
-        for c in range(9):
-            i = r * 9 + c
-            with cols[c]:
-                st.button(
-                    str(board[i]) if board[i] else " ",
-                    key=f"c{i}",
-                    on_click=select,
-                    args=(i,),
-                    type="primary" if S.selected == i else "secondary",
-                )
+        with st.container(key=f"row{r}"):
+            cols = st.columns(weights)
+            for c in range(9):
+                i = r * 9 + c
+                with cols[c + c // 3]:
+                    st.button(
+                        str(board[i]) if board[i] else " ",
+                        key=f"c{i}",
+                        on_click=select,
+                        args=(i,),
+                        type="primary" if S.selected == i else "secondary",
+                    )
 
 with st.container(key="pad"):
     cols = st.columns(10)
@@ -168,3 +167,43 @@ with st.container(key="pad"):
                            use_container_width=True)
     cols[9].button("⌫", key="p0", on_click=enter, args=(0,),
                    use_container_width=True)
+
+# --- keyboard: digits, backspace/delete, arrows ----------------------------
+KEY_JS = """
+<script>
+const p = window.parent;
+if (!p.__sudokuKeys) {
+  p.__sudokuKeys = true;
+  const s = p.document.createElement('script');
+  s.textContent = `
+    document.addEventListener('keydown', (e) => {
+      const t = e.target;
+      if (t && (['INPUT','TEXTAREA','SELECT'].includes(t.tagName) || t.isContentEditable)) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const click = (sel) => { const b = document.querySelector(sel); if (b) b.click(); };
+      if (/^[1-9]$/.test(e.key)) { e.preventDefault(); click('.st-key-p' + e.key + ' button'); }
+      else if (['Backspace','Delete','0'].includes(e.key)) { e.preventDefault(); click('.st-key-p0 button'); }
+      else if (e.key.startsWith('Arrow')) {
+        e.preventDefault();
+        const cur = document.querySelector('.st-key-grid button[data-testid="stBaseButton-primary"]');
+        const m = cur && cur.closest('[class*="st-key-c"]').className.match(/st-key-c(\\\\d+)/);
+        let i = m ? parseInt(m[1], 10) : null;
+        if (window.__selAt && Date.now() - window.__selAt < 1500) i = window.__selIdx;
+        if (i === null) i = 0;
+        else {
+          let r = Math.floor(i / 9), c = i % 9;
+          if (e.key === 'ArrowUp') r = Math.max(0, r - 1);
+          if (e.key === 'ArrowDown') r = Math.min(8, r + 1);
+          if (e.key === 'ArrowLeft') c = Math.max(0, c - 1);
+          if (e.key === 'ArrowRight') c = Math.min(8, c + 1);
+          i = r * 9 + c;
+        }
+        window.__selIdx = i; window.__selAt = Date.now();
+        click('.st-key-c' + i + ' button');
+      }
+    });`;
+  p.document.head.appendChild(s);
+}
+</script>
+"""
+st.iframe(KEY_JS, height=1)
