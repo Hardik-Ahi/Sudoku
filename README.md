@@ -17,6 +17,3 @@ python -m pytest
 - **Solver** (`sudoku/solver.py`): backtracking with bitmask candidates and the minimum-remaining-values heuristic; also counts solutions (capped) to check uniqueness.
 - **Generator** (`sudoku/generator.py`): random full grid (diagonal boxes filled, rest by randomized backtracking), then removes cells in random order while the puzzle keeps exactly one solution, down to a clue target per difficulty.
 - **Validator** (`sudoku/validator.py`): duplicate detection in rows/columns/boxes (shown in red) and completion check.
-
-## Deploy
-Push to GitHub, then on https://share.streamlit.io create an app pointing at `app.py`.
