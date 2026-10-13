@@ -1,4 +1,4 @@
-import time
+﻿import time
 
 import streamlit as st
 
@@ -30,6 +30,10 @@ bad = conflicts(board)
 won = is_complete(board)
 
 
+def notify(msg, icon):
+    S.setdefault("toasts", []).append((msg, icon))
+
+
 def select(i):
     S.selected = i
 
@@ -37,9 +41,9 @@ def select(i):
 def enter(v):
     i = S.selected
     if i is None:
-        st.toast("Select a cell first.", icon="⚠️")
+        notify("Select a cell first.", "⚠️")
     elif puzzle[i]:
-        st.toast("That cell is a given.", icon="⚠️")
+        notify("That cell is a given.", "⚠️")
     else:
         board[i] = v
 
@@ -53,10 +57,10 @@ def reset():
 def check():
     wrong = [i for i in range(81) if board[i] and board[i] != solution[i]]
     if wrong:
-        st.toast(f"{len(wrong)} cell(s) don't match the solution.", icon="❌")
+        notify(f"{len(wrong)} cell(s) don't match the solution.", "❌")
         S.selected = wrong[0]
     else:
-        st.toast("So far so good!", icon="✅")
+        notify("So far so good!", "✅")
 
 
 def hint():
@@ -66,7 +70,7 @@ def hint():
     i = S.selected if S.selected in empties and not puzzle[S.selected] else empties[0]
     board[i] = solution[i]
     S.selected = i
-    st.toast("Hint revealed.", icon="💡")
+    notify("Hint revealed.", "💡")
 
 
 def show_solution():
@@ -86,6 +90,7 @@ css = """
 .st-key-pad [data-testid="stColumn"]{min-width:0 !important;}
 .st-key-pad button{min-height:3rem;}
 .st-key-pad button p{font-size:1.5rem;}
+.st-key-toasts{display:none;}
 """
 
 
@@ -127,6 +132,16 @@ with st.sidebar:
     st.button("Hint", on_click=hint, use_container_width=True)
     st.button("Reset", on_click=reset, use_container_width=True)
     st.button("Show solution", on_click=show_solution, use_container_width=True)
+
+# st.toast always lands at the same element path, and the frontend drops a toast
+# whose path matches one still on screen. Writing through a container instead
+# gives each toast its own path (cycling through 8 slots).
+with st.container(key="toasts"):
+    for msg, icon in S.pop("toasts", []):
+        S.toast_n = S.get("toast_n", 0) + 1
+        for _ in range(S.toast_n % 8):
+            st.empty()
+        st.container().toast(msg, icon=icon)
 
 # --- main ------------------------------------------------------------------
 st.title("🔢 Sudoku")
