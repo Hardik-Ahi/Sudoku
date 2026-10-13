@@ -15,7 +15,6 @@ def new_game(difficulty):
         solution=solution,
         board=list(puzzle),
         selected=None,
-        message="",
         start=time.time(),
         difficulty=difficulty,
         solved_shown=False,
@@ -33,7 +32,6 @@ won = is_complete(board)
 
 def select(i):
     S.selected = i
-    S.message = ""
 
 
 def enter(v):
@@ -49,17 +47,16 @@ def enter(v):
 def reset():
     S.board = list(S.puzzle)
     S.selected = None
-    S.message = ""
     S.solved_shown = False
 
 
 def check():
     wrong = [i for i in range(81) if board[i] and board[i] != solution[i]]
     if wrong:
-        S.message = f"❌ {len(wrong)} cell(s) don't match the solution."
+        st.toast(f"{len(wrong)} cell(s) don't match the solution.", icon="❌")
         S.selected = wrong[0]
     else:
-        S.message = "✅ So far so good!"
+        st.toast("So far so good!", icon="✅")
 
 
 def hint():
@@ -69,7 +66,7 @@ def hint():
     i = S.selected if S.selected in empties and not puzzle[S.selected] else empties[0]
     board[i] = solution[i]
     S.selected = i
-    S.message = "💡 Hint revealed."
+    st.toast("Hint revealed.", icon="💡")
 
 
 def show_solution():
@@ -139,8 +136,6 @@ if won and not S.solved_shown:
     st.balloons()
     st.success(f"🎉 Solved in {int(time.time() - S.start) // 60} min "
                f"{int(time.time() - S.start) % 60} s!")
-elif S.message:
-    st.info(S.message)
 
 with st.container(key="grid"):
     # Narrow empty spacer columns separate the 3x3 boxes; all 81 cell columns
